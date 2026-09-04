@@ -373,7 +373,22 @@ async function saveAncillaryNote(){try{await db.collection('ancillaryRequests').
 async function setStatus(next){const allowed=['pending','acknowledged','sent','received','denied'];if(!allowed.includes(next))return;const patch={status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};const ts=firebase.firestore.FieldValue.serverTimestamp();if(next==='acknowledged')patch.acknowledgedAt=ts;if(next==='sent')patch.sentAt=ts;if(next==='received')patch.receivedAt=ts;if(next==='denied')patch.deniedAt=ts;try{await db.collection('ancillaryRequests').doc(editingId).update(patch);closeModal()}catch(e){alert('Unable to update status: '+e.message)}}
 async function deleteCurrent(){if(!editingId)return;const r=requests.find(x=>x.id===editingId);if(!r||!confirm('Delete the request for '+r.patientName+'? This cannot be undone.'))return;try{await db.collection('ancillaryRequests').doc(editingId).delete();closeModal()}catch(e){alert('Unable to delete request: '+e.message)}}
 $('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
-</script></body></html>
+</script>
+<style id="request-card-exact-layout">
+.request-row{
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr) minmax(110px,auto) minmax(100px,auto) 18px;
+  align-items:center;
+  gap:10px;
+}
+.request-row .req-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.request-row .req-main{min-width:0}
+.request-row .req-simple-name{font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:#26323c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.request-row .req-date{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#66717b;white-space:nowrap;text-align:right}
+.request-row .req-status{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#44515d;white-space:nowrap;text-align:left}
+.request-row .req-time{margin-left:0}
+</style>
+</body></html>
 
 <style id="typography-and-patient-modal">
 h1,h2,h3,.brand,.title,.subtitle,.modal-title,.section-title,.patient-name,.patient-head .patient-name,
