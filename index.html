@@ -56,7 +56,7 @@
 </div></div>
 
 <script>
-const firebaseConfig={"apiKey": "AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ", "authDomain": "svls-289ee.firebaseapp.com", "databaseURL": "https://svls-289ee-default-rtdb.firebaseio.com", "projectId": "svls-289ee", "storageBucket": "svls-289ee.firebasestorage.app", "messagingSenderId": "500705386198", "appId": "1:500705386198:web:96f189662bc2aa99cf7377", "measurementId": "G-5TNBMQ2HN5"};firebase.initializeApp(firebaseConfig);const db=firebase.firestore(),auth=firebase.auth();
+const firebaseConfig={"apiKey": "AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ", "authDomain": "svls-289ee.firebaseapp.com", "databaseURL": "https://svls-289ee-default-rtdb.firebaseio.com", "projectId": "svls-289ee", "storageBucket": "svls-289ee.firebasestorage.app", "messagingSenderId": "500705386198", "appId": "1:500705386198:web:96f189662bc2aa99cf7377", "measurementId": "G-5TNBMQ2HN5"};firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.settings({experimentalForceLongPolling:true,useFetchStreams:false});const auth=firebase.auth();
 let currentUser=null,profile=null,requests=[],unsubscribe=null,moduleName='laboratory',statusFilter='all',categoryFilter='all',selectedDate=new Date(),editingId=null;
 const LAB=[{key:'clinical_microscopy',label:'Clinical Microscopy',color:'#fff6cc',help:'Specify requested examination, e.g. Urinalysis, Fecalysis, etc.'},{key:'hematology',label:'Hematology',color:'#fbe7e7',help:'Specify the requested hematology examination.'},{key:'clinical_chemistry',label:'Clinical Chemistry',color:'#eaf5e2',help:'Specify the requested chemistry examination.'},{key:'others',label:'Others',color:'#fff',help:'Specify the requested laboratory examination.'}];
 const RAD=[{key:'xray',label:'X-Ray',color:'#e7eef8',help:'Specify the body part and requested X-Ray examination.'},{key:'ultrasound',label:'Ultrasound',color:'#eee8f8',help:'Specify the requested ultrasound examination.'}];
@@ -74,15 +74,16 @@ function canProcess(){return ['laboratory','radiology','nursing','admin'].includ
 
 auth.onAuthStateChanged(async user=>{
  if(!user){location.href='login.html';return} currentUser=user;
- try{const s=await db.collection('users').doc(user.uid).get();if(!s.exists){await auth.signOut();return}
+ $('cards').innerHTML='<div class="loading">Connecting to Firestore…</div>';
+ try{const profilePromise=db.collection('users').doc(user.uid).get();const s=await Promise.race([profilePromise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Firestore connection timed out after 12 seconds.')),12000))]);if(!s.exists){await auth.signOut();alert('No Firestore user profile was found for this account.');return}
  profile=s.data();if(profile.approved===false){await auth.signOut();alert('Your account is pending administrator approval.');return}
  $('userName').textContent=profile.fullName||profile.email||user.email;$('roleNote').textContent='Signed in as '+(profile.role||'requester')+(profile.department?' • '+profile.department:'');
  if(profile.role==='laboratory'||profile.department==='laboratory')setModule('laboratory');else if(profile.role==='radiology'||profile.department==='radiology')setModule('radiology');else if(profile.role==='nursing'||profile.department==='nursing')setModule('nursing');
  buildFilters();subscribe();
- }catch(e){console.error(e);alert('Unable to load your user profile.')}
+ }catch(e){console.error('Firestore startup error:',e);$('cards').innerHTML='<div class="empty"><b>Firestore connection failed.</b><br><small>'+esc(e.message||'Unknown Firestore error')+'</small><br><br>Open the browser console (F12) for the exact Firebase error.</div>';}
 });
 async function logout(){if(unsubscribe)unsubscribe();await auth.signOut();location.href='login.html'}
-function subscribe(){if(unsubscribe)unsubscribe();unsubscribe=db.collection('ancillaryRequests').orderBy('requestedAt','desc').onSnapshot(s=>{requests=s.docs.map(d=>({id:d.id,...d.data()}));render()},e=>{$('cards').innerHTML='<div class="empty">Unable to read ancillary requests. Check Firestore rules/indexes.</div>';console.error(e)})}
+function subscribe(){if(unsubscribe)unsubscribe();$('cards').innerHTML='<div class="loading">Loading requests…</div>';unsubscribe=db.collection('ancillaryRequests').orderBy('requestedAt','desc').onSnapshot(s=>{requests=s.docs.map(d=>({id:d.id,...d.data()}));render()},e=>{$('cards').innerHTML='<div class="empty"><b>Unable to read ancillary requests.</b><br><small>'+esc(e.message||'Unknown Firestore error')+'</small></div>';console.error('ancillaryRequests listener error:',e)})}
 function visibleRequests(){const q=$('search').value.trim().toLowerCase();return requests.filter(r=>{
  if(r.department!==moduleName)return false;if(!sameDay(r.requestedAt,selectedDate))return false;if(statusFilter!=='all'&&r.status!==statusFilter)return false;if(categoryFilter!=='all'&&r.category!==categoryFilter)return false;
  if(q&&!['patientName','category','specificRequest','status'].some(k=>String(r[k]||'').toLowerCase().includes(q)))return false;return true})}
