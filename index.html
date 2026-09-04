@@ -52,7 +52,15 @@
 </div></div>
 
 <script>
-const firebaseConfig={"apiKey": "AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ", "authDomain": "svls-289ee.firebaseapp.com", "databaseURL": "https://svls-289ee-default-rtdb.firebaseio.com", "projectId": "svls-289ee", "storageBucket": "svls-289ee.firebasestorage.app", "messagingSenderId": "500705386198", "appId": "1:500705386198:web:96f189662bc2aa99cf7377", "measurementId": "G-5TNBMQ2HN5"};firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.settings({experimentalForceLongPolling:true,experimentalAutoDetectLongPolling:false,useFetchStreams:false});const auth=firebase.auth();
+const firebaseConfig={"apiKey":"AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ","authDomain":"svls-289ee.firebaseapp.com","projectId":"svls-289ee","storageBucket":"svls-289ee.firebasestorage.app","messagingSenderId":"500705386198","appId":"1:500705386198:web:96f189662bc2aa99cf7377","measurementId":"G-5TNBMQ2HN5"};
+
+// Initialize Firebase once and create the Firestore + Auth clients from the same app.
+const firebaseApp=firebase.apps.length?firebase.app():firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore(firebaseApp);
+const auth=firebase.auth(firebaseApp);
+
+// Automatically select the best Firestore transport for the current browser/network.
+try{db.settings({experimentalAutoDetectLongPolling:true});}catch(e){console.warn('Firestore transport settings unavailable; using default.',e);}
 let currentUser=null,profile=null,requests=[],unsubscribe=null,moduleName='laboratory',statusFilter='all',categoryFilter='all',selectedDate=new Date(),editingId=null;
 const LAB=[{key:'clinical_microscopy',label:'Clinical Microscopy',color:'#fff6cc',help:'Specify requested examination, e.g. Urinalysis, Fecalysis, etc.'},{key:'hematology',label:'Hematology',color:'#fbe7e7',help:'Specify the requested hematology examination.'},{key:'clinical_chemistry',label:'Clinical Chemistry',color:'#eaf5e2',help:'Specify the requested chemistry examination.'},{key:'others',label:'Others',color:'#fff',help:'Specify the requested laboratory examination.'}];
 const RAD=[{key:'xray',label:'X-Ray',color:'#e7eef8',help:'Specify the body part and requested X-Ray examination.'},{key:'ultrasound',label:'Ultrasound',color:'#eee8f8',help:'Specify the requested ultrasound examination.'}];
@@ -68,12 +76,15 @@ function statusLabel(s){return{pending:'Pending',acknowledged:'Acknowledged / On
 function isRequester(){return !['laboratory','radiology','nursing','admin'].includes(profile?.role)}
 function canProcess(){return ['laboratory','radiology','nursing','admin'].includes(profile?.role)||['laboratory','radiology','nursing'].includes(profile?.department)}
 
+window.addEventListener('online',()=>{if(db)db.enableNetwork().catch(e=>console.warn('Firestore reconnect failed:',e));});
+window.addEventListener('offline',()=>console.warn('Browser is offline; Firestore will use its local cache when available.'));
+
 auth.onAuthStateChanged(async user=>{
  if(!user){$('cards').innerHTML='<div class="empty"><b>No signed-in user.</b><br>Please log in first.</div>';setTimeout(()=>location.href='login.html',700);return;}
  currentUser=user;$('cards').innerHTML='<div class="loading">Connecting to Firestore…</div>';
  try{
-  await withTimeout(db.enableNetwork(),'Firestore network initialization',8000);
-  const snap=await withTimeout(db.collection('users').doc(user.uid).get({source:'server'}),'Firestore user-profile read',10000);
+  await withTimeout(db.enableNetwork(),'Firestore network initialization',10000);
+  const snap=await withTimeout(db.collection('users').doc(user.uid).get(),'Firestore user-profile read',15000);
   if(!snap.exists){await auth.signOut();throw new Error('NO_USER_PROFILE: No user profile was found in Firestore for this signed-in account (users/'+user.uid+').');}
   profile=snap.data()||{};
   if(profile.approved===false){await auth.signOut();throw new Error('ACCOUNT_PENDING: Your account is pending administrator approval.');}
@@ -107,7 +118,7 @@ function openRequest(id){const r=requests.find(x=>x.id===id);if(!r)return;editin
 function closeModal(){$('modal').classList.remove('show');editingId=null}
 function dataFromForm(){return{patientName:$('fName').value.trim(),age:$('fAge').value.trim(),sex:$('fSex').value,admissionDate:$('fAdmission').value,category:$('fCategory').value,specificRequest:$('fSpecific').value.trim(),requesterNote:$('fRequesterNote').value.trim(),ancillaryNote:$('fAncillaryNote').value.trim()}}
 function validate(d){return(!d.patientName||!d.age||!d.sex||!d.admissionDate||!d.category||!d.specificRequest)?'Complete patient details and the specific request.':''}
-function updateWorkflow(){const r=editingId?requests.find(x=>x.id===editingId):null;let b='';if(!r)b='<button class="primary" onclick="submitNew()">Submit Request</button>';else if(isRequester()&&['pending','acknowledged','sent'].includes(r.status))b='<button class="primary" onclick="saveEdit()">✏️ Save Changes</button>';if(r&&isRequester()&&r.status==='sent')b+='<button class="primary" onclick="setStatus(\\'received\\')">📥 Mark as Received</button>';if(r&&canProcess()&&r.department===moduleName&&!isRequester()){if(r.status==='pending')b+='<button class="primary" onclick="setStatus(\\'acknowledged\\')">🔄 Acknowledge / On Process</button><button class="danger" onclick="setStatus(\\'denied\\')">❌ Deny</button>';else if(r.status==='acknowledged')b+='<button class="primary" onclick="setStatus(\\'sent\\')">📤 Mark Sent / Processed</button><button class="danger" onclick="setStatus(\\'denied\\')">❌ Deny</button>';b+='<button class="secondary" onclick="saveAncillaryNote()">Save Note</button>'}$('workflowActions').innerHTML=b}
+function updateWorkflow(){const r=editingId?requests.find(x=>x.id===editingId):null;let b='';if(!r)b='<button class="primary" onclick="submitNew()">Submit Request</button>';else if(isRequester()&&['pending','acknowledged','sent'].includes(r.status))b='<button class="primary" onclick="saveEdit()">✏️ Save Changes</button>';if(r&&isRequester()&&r.status==='sent')b+='<button class="primary" onclick="setStatus(\'received\')">📥 Mark as Received</button>';if(r&&canProcess()&&r.department===moduleName&&!isRequester()){if(r.status==='pending')b+='<button class="primary" onclick="setStatus(\'acknowledged\')">🔄 Acknowledge / On Process</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';else if(r.status==='acknowledged')b+='<button class="primary" onclick="setStatus(\'sent\')">📤 Mark Sent / Processed</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';b+='<button class="secondary" onclick="saveAncillaryNote()">Save Note</button>'}$('workflowActions').innerHTML=b}
 async function submitNew(){const d=dataFromForm(),e=validate(d);if(e)return alert(e);try{await db.collection('ancillaryRequests').add({...d,department:moduleName,status:'pending',requestedAt:firebase.firestore.FieldValue.serverTimestamp(),requestedBy:currentUser.uid,requestedByName:profile.fullName||profile.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to submit request: '+x.message)}}
 async function saveEdit(){const d=dataFromForm(),e=validate(d);if(e)return alert(e);try{await db.collection('ancillaryRequests').doc(editingId).update({...d,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save changes: '+x.message)}}
 async function saveAncillaryNote(){try{await db.collection('ancillaryRequests').doc(editingId).update({ancillaryNote:$('fAncillaryNote').value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save note: '+x.message)}}
