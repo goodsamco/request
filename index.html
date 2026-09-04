@@ -204,9 +204,9 @@ body{background:#f3f5f7;color:var(--ink);padding-bottom:0;font-family:Georgia,"T
     <div class="field"><label>Sex</label><select id="sfSex"><option value="">Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></div>
     <div class="field"><label>Date of Admission</label><input id="sfAdmission" type="date"></div>
     <div class="field full"><label>Request Type / Category</label><select id="sfCategory"></select></div>
-    <div class="field full"><label>Specific Request / Examination</label><input id="sfSpecific" placeholder="Specify the examination or request"></div>
+    <div class="field full"><label>Specific Request / Examination</label><input id="sfSpecific" placeholder=""></div>
     <div class="field full"><label>Requesting-side Note</label><textarea id="sfRequesterNote"></textarea></div>
-    <div class="field full"><label id="ancillaryNoteLabel">Laboratory Note</label><textarea id="sfAncillaryNote"></textarea></div>
+    <div class="field full"><label id="ancillaryNoteLabel">Laboratory Note</label><textarea id="sfAncillaryNote" placeholder=""></textarea></div>
   </div><div class="note-box" id="categoryHelp"></div>
 </div>
 </div>
@@ -295,7 +295,7 @@ function renderCalendar(){const title=$('calendarTitle');const grid=$('calendarG
 function selectCalendarDate(k){selectedDate=new Date(k+'T00:00:00');dateMode='day';calendarMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);render()}
 function selectWholeCalendarMonth(){selectedDate=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1);dateMode='month';render()}
 function fillCategories(sel='',dept=moduleName){const list=listFor(dept==='all'?'laboratory':dept);$('sfCategory').innerHTML=list.map(x=>`<option value="${x.key}" ${x.key===sel?'selected':''}>${x.label}</option>`).join('');$('sfCategory').onchange=updateHelp;updateHelp()}
-function updateHelp(){const dept=editingId?(requests.find(x=>x.id===editingId)?.department||moduleName):(moduleName==='all'?($('fDepartment')?.value||'laboratory'):moduleName);const c=listFor(dept).find(x=>x.key===$('sfCategory').value);$('categoryHelp').textContent=c?.help||'Specify the request.';$('ancillaryNoteLabel').textContent=moduleLabel(dept)+' Note'}
+function updateHelp(){const dept=editingId?(requests.find(x=>x.id===editingId)?.department||moduleName):(moduleName==='all'?($('fDepartment')?.value||'laboratory'):moduleName);const c=listFor(dept).find(x=>x.key===$('sfCategory').value);$('categoryHelp').textContent=c?.help||'Specify the request.';$('ancillaryNoteLabel').textContent=moduleLabel(dept)+' Response / Note'}
 function clearForm(){['fName','fAge','fRequesterNote'].forEach(id=>$(id).value='');$('fSex').value='';$('fAdmission').value=dayKey(new Date())}
 
 function openPatient(key){
@@ -318,24 +318,122 @@ function openPatient(key){
 function buildPatientRequestChoices(matches){
   const byKey=new Map(matches.map(r=>[r.department+'|'+r.category,r]));
   const depts=['laboratory','radiology','nursing'];
-  $('requestChoices').innerHTML=`<div class="dept-request-tabs">${depts.map((d,i)=>`<button type="button" class="dept-request-tab${i===0?' active':''}" onclick="showDeptRequestTab('${d}',this)">${iconForDept(d)}<span>${moduleLabel(d)}</span></button>`).join('')}</div><div class="dept-request-panels">${depts.map((d,i)=>`<div class="dept-request-panel${i===0?' active':''}" data-dept-panel="${d}">${requestChoiceHTML(d,listFor(d),byKey)}</div>`).join('')}</div>`;document.querySelectorAll('[data-specific-for]').forEach(el=>{const [dept,cat]=el.dataset.specificFor.split('_');const r=byKey.get(dept+'|'+cat);el.value=r?.specificRequest||''});
+  $('requestChoices').innerHTML=`<div class="dept-request-tabs">${depts.map((d,i)=>`<button type="button" class="dept-request-tab${i===0?' active':''}" onclick="showDeptRequestTab('${d}',this)">${iconForDept(d)}<span>${moduleLabel(d)}</span></button>`).join('')}</div><div class="dept-request-panels">${depts.map((d,i)=>`<div class="dept-request-panel${i===0?' active':''}" data-dept-panel="${d}">${requestChoiceHTML(d,listFor(d),byKey)}</div>`).join('')}</div>`;document.querySelectorAll('[data-specific-for]').forEach(el=>{const [dept,cat]=el.dataset.specificFor.split('_');const r=byKey.get(dept+'|'+cat);el.value=r?.specificRequest||''});document.querySelectorAll('[data-other-note-for]').forEach(el=>{const [dept,cat]=el.dataset.otherNoteFor.split('_');const r=byKey.get(dept+'|'+cat);el.value=r?.otherNote||''});
 }
 function showDeptRequestTab(dept,btn){document.querySelectorAll('.dept-request-tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.dept-request-panel').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const panel=document.querySelector(`[data-dept-panel="${dept}"]`);if(panel)panel.classList.add('active')}
 function requestChoiceHTML(dept,items,existingMap){
-  return `<div class="multi-section">${items.map(x=>{const r=existingMap?.get(dept+'|'+x.key);const checked=r?' checked':'';const val=r?.specificRequest||'';const isOther=x.key==='others';return `<div class="request-choice" style="--choice-color:${x.color||'#fff'}"><input type="checkbox" id="rq_${dept}_${x.key}" value="${x.key}" data-dept="${dept}"${checked} onchange="toggleRequestDetail(this)"><div class="choice-main"><label for="rq_${dept}_${x.key}">${esc(x.label)}</label><div class="choice-detail${r?' show':''}" id="detail_${dept}_${x.key}">${isOther?`<input class="other-request-name" data-specific-for="${dept}_${x.key}" value="${esc(val)}" placeholder="ENTER REQUEST NAME">`:`<textarea data-specific-for="${dept}_${x.key}" placeholder="OPTIONAL SPECIFIC REQUEST / EXAMINATION">${esc(val)}</textarea>`}</div></div></div>`}).join('')}</div>`;
+  return `<div class="multi-section">${items.map(x=>{
+    const r=existingMap?.get(dept+'|'+x.key);
+    const checked=r?' checked':'';
+    const val=r?.specificRequest||'';
+    const note=r?.otherNote||'';
+    const isOther=x.key==='others';
+    return `<div class="request-choice" style="--choice-color:${x.color||'#fff'}">
+      <input type="checkbox" id="rq_${dept}_${x.key}" value="${x.key}" data-dept="${dept}"${checked} onchange="toggleRequestDetail(this)">
+      <div class="choice-main">
+        <label for="rq_${dept}_${x.key}">${esc(x.label)}</label>
+        <div class="choice-detail${r?' show':''}" id="detail_${dept}_${x.key}">
+          ${isOther
+            ? `<input class="other-request-name" data-specific-for="${dept}_${x.key}" value="${esc(val)}" placeholder="REQUEST NAME">
+               <textarea class="other-request-note" data-other-note-for="${dept}_${x.key}" placeholder="NOTE">${esc(note)}</textarea>`
+            : `<textarea data-specific-for="${dept}_${x.key}" placeholder="">${esc(val)}</textarea>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 }
+
 function buildRequestChoices(){const box=$('requestChoices');if(!box)return;const depts=moduleName==='all'?['laboratory','radiology','nursing']:[moduleName];box.innerHTML=`<div class="dept-request-tabs">${depts.map((d,i)=>`<button type="button" class="dept-request-tab${i===0?' active':''}" onclick="showDeptRequestTab('${d}',this)">${iconForDept(d)}<span>${moduleLabel(d)}</span></button>`).join('')}</div><div class="dept-request-panels">${depts.map((d,i)=>`<div class="dept-request-panel${i===0?' active':''}" data-dept-panel="${d}">${requestChoiceHTML(d,listFor(d))}</div>`).join('')}</div>`}
 function toggleRequestDetail(cb){const d=$('detail_'+cb.dataset.dept+'_'+cb.value);if(d)d.classList.toggle('show',cb.checked);if(cb.checked&&cb.value==='others'){const el=d?.querySelector('.other-request-name');if(el)el.focus()}}
 function openNew(){if(!isRequester())return alert('Only requester accounts can create new requests.');editingId=null;$('modalTitle').textContent='New Patient Request';$('requestModal').classList.add('multi');$('multiRequestMode').style.display='block';$('singleRequestMode').style.display='none';$('deleteBtn').style.display='none';clearForm();buildRequestChoices();$('workflowActions').innerHTML='<button class="primary" onclick="submitNew()">Submit Selected Requests</button>';$('modal').classList.add('show')}
-function openRequest(id){const r=requests.find(x=>x.id===id);if(!r)return;editingId=id;$('modalTitle').textContent='Request Details';$('requestModal').classList.remove('multi');$('multiRequestMode').style.display='none';$('singleRequestMode').style.display='block';$('sfName').value=r.patientName||'';$('sfAge').value=r.age||'';$('sfSex').value=r.sex||'';$('sfAdmission').value=r.admissionDate||'';$('sfSpecific').value=r.specificRequest||'';$('sfRequesterNote').value=r.requesterNote||'';$('sfAncillaryNote').value=r.ancillaryNote||'';fillCategories(r.category,r.department);$('deleteBtn').style.display=isRequester()?'inline-block':'none';if(!isRequester()){['sfName','sfAge','sfSex','sfAdmission','sfCategory','sfSpecific','sfRequesterNote'].forEach(id=>{const el=$(id);if(el)el.setAttribute('readonly',id!=='sfSex'&&id!=='sfCategory');if(el&&(id==='sfSex'||id==='sfCategory'))el.disabled=true});}updateWorkflow();$('modal').classList.add('show')}
+function openRequest(id){
+  const r=requests.find(x=>x.id===id);
+  if(!r)return;
+  editingId=id;
+  window.__openPatientIdentity=patientIdentity(r)||r.id;
+  $('modalTitle').textContent='Request Details';
+  $('requestModal').classList.remove('multi');
+  $('multiRequestMode').style.display='none';
+  $('singleRequestMode').style.display='block';
+  $('sfName').value=r.patientName||'';
+  $('sfAge').value=r.age||'';
+  $('sfSex').value=r.sex||'';
+  $('sfAdmission').value=r.admissionDate||'';
+  $('sfSpecific').value=r.specificRequest||'';
+  $('sfRequesterNote').value=r.requesterNote||'';
+  $('sfAncillaryNote').value=r.ancillaryNote||'';
+  fillCategories(r.category,r.department);
+  ['sfName','sfAge','sfAdmission','sfSpecific','sfRequesterNote'].forEach(id=>{
+    const el=$(id);if(el){el.readOnly=true;el.disabled=false;}
+  });
+  ['sfSex','sfCategory'].forEach(id=>{const el=$(id);if(el){el.disabled=true;el.style.opacity='1';}});
+  $('sfAncillaryNote').readOnly=isRequester();
+  $('sfAncillaryNote').style.opacity='1';
+  $('sfAncillaryNote').style.background='#fff';
+  $('deleteBtn').style.display='none';
+  updateWorkflow();
+  $('modal').classList.add('show');
+}
 function closeModal(){$('modal').classList.remove('show');editingId=null}
 function dataFromForm(){const existing=editingId?requests.find(x=>x.id===editingId):null;const dept=existing?.department||(moduleName==='all'?'laboratory':moduleName);return{patientName:$('sfName').value.trim(),age:$('sfAge').value.trim(),sex:$('sfSex').value,admissionDate:$('sfAdmission').value,category:$('sfCategory').value,specificRequest:$('sfSpecific').value.trim(),requesterNote:$('sfRequesterNote').value.trim(),ancillaryNote:$('sfAncillaryNote').value.trim(),department:dept}}
 function validate(d){return(!d.patientName||!d.age||!d.sex||!d.admissionDate||!d.category)?'Complete patient details and select a request category.':''}
-function selectedNewRequests(){const out=[];document.querySelectorAll('#requestChoices input[type=checkbox]:checked').forEach(cb=>{const key=cb.value,dept=cb.dataset.dept,detail=document.querySelector(`[data-specific-for="${dept}_${key}"]`);const item=listFor(dept).find(x=>x.key===key);out.push({department:dept,category:key,specificRequest:(detail?.value||'').trim(),label:item?.label||key})});return out}
+function selectedNewRequests(){const out=[];document.querySelectorAll('#requestChoices input[type=checkbox]:checked').forEach(cb=>{const key=cb.value,dept=cb.dataset.dept,detail=document.querySelector(`[data-specific-for="${dept}_${key}"]`),note=document.querySelector(`[data-other-note-for="${dept}_${key}"]`);const item=listFor(dept).find(x=>x.key===key);out.push({department:dept,category:key,specificRequest:(detail?.value||'').trim(),otherNote:(note?.value||'').trim(),label:item?.label||key})});return out}
 function updateWorkflow(){const r=editingId?requests.find(x=>x.id===editingId):null;let b='';if(!r)b='<button class="primary" onclick="submitNew()">Submit Selected Requests</button>';else if(isRequester()&&['pending','acknowledged','sent'].includes(r.status))b='<button class="primary" onclick="saveEdit()">Save Changes</button>';if(r&&isRequester()&&r.status==='sent')b+='<button class="primary" onclick="setStatus(\'received\')">Mark as Received</button>';if(r&&canProcess()&&(moduleName==='all'||r.department===moduleName)&&!isRequester()){if(r.status==='pending')b+='<button class="primary" onclick="setStatus(\'acknowledged\')">Acknowledge / On Process</button><button class="danger" onclick="setStatus(\'denied\')">Deny</button>';else if(r.status==='acknowledged')b+='<button class="primary" onclick="setStatus(\'sent\')">Mark Sent / Processed</button><button class="danger" onclick="setStatus(\'denied\')">Deny</button>';else if(r.status==='sent')b+='<button class="secondary" onclick="setStatus(\'acknowledged\')">Revert to On Process</button><button class="danger" onclick="setStatus(\'denied\')">Deny</button>';else if(r.status==='denied')b+='<button class="secondary" onclick="setStatus(\'pending\')">Restore to Pending</button>';else if(r.status==='received')b+='<button class="secondary" onclick="setStatus(\'sent\')">Revert to Sent / Processed</button>';b+='<button class="secondary" onclick="saveAncillaryNote()">Save Note</button>'}$('workflowActions').innerHTML=b}
-async function submitNew(){const patient={patientName:$('fName').value.trim(),age:$('fAge').value.trim(),sex:$('fSex').value,admissionDate:$('fAdmission').value,requesterNote:$('fRequesterNote').value.trim()};if(!patient.patientName||!patient.age||!patient.sex||!patient.admissionDate)return alert('Complete the patient details.');const selected=selectedNewRequests();if(!selected.length)return alert('Select at least one request.');try{const batch=db.batch();selected.forEach(x=>{const ref=db.collection('ancillaryRequests').doc();batch.set(ref,{...patient,department:x.department,category:x.category,specificRequest:x.specificRequest,ancillaryNote:'',status:'pending',requestedAt:firebase.firestore.FieldValue.serverTimestamp(),requestedBy:currentUser.uid,requestedByName:profile.fullName||profile.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});await batch.commit();closeModal()}catch(x){alert('Unable to submit requests: '+x.message)}}
+
+async function savePatientRequests(){
+  if(!isRequester())return alert('Only requester accounts can update requests.');
+  const patient={
+    patientName:$('fName').value.trim().toUpperCase(),
+    age:$('fAge').value.trim(),
+    sex:$('fSex').value,
+    admissionDate:$('fAdmission').value,
+    requesterNote:$('fRequesterNote').value.trim().toUpperCase()
+  };
+  if(!patient.patientName||!patient.age||!patient.sex||!patient.admissionDate)
+    return alert('Complete the patient details.');
+  const selected=selectedNewRequests();
+  if(!selected.length)return alert('Select at least one request.');
+  const identity=patientIdentity(patient);
+  const existing=requests.filter(r=>(patientIdentity(r)||r.id)===identity);
+  const selectedKeys=new Set(selected.map(x=>x.department+'|'+x.category));
+  try{
+    const batch=db.batch();
+    existing.forEach(r=>{
+      if(!selectedKeys.has(r.department+'|'+r.category)){
+        batch.delete(db.collection('ancillaryRequests').doc(r.id));
+      }
+    });
+    selected.forEach(x=>{
+      const old=existing.find(r=>r.department===x.department&&r.category===x.category);
+      const data={
+        ...patient,
+        department:x.department,
+        category:x.category,
+        specificRequest:(x.specificRequest||'').trim().toUpperCase(),
+        otherNote:(x.otherNote||'').trim().toUpperCase(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if(old) batch.update(db.collection('ancillaryRequests').doc(old.id),data);
+      else batch.set(db.collection('ancillaryRequests').doc(),{
+        ...data,
+        ancillaryNote:'',
+        status:'pending',
+        requestedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        requestedBy:currentUser.uid,
+        requestedByName:profile.fullName||profile.email
+      });
+    });
+    await batch.commit();
+    closeModal();
+  }catch(e){
+    alert('Unable to save/update patient requests: '+e.message);
+    console.error(e);
+  }
+}
+
+async function submitNew(){const patient={patientName:$('fName').value.trim(),age:$('fAge').value.trim(),sex:$('fSex').value,admissionDate:$('fAdmission').value,requesterNote:$('fRequesterNote').value.trim()};if(!patient.patientName||!patient.age||!patient.sex||!patient.admissionDate)return alert('Complete the patient details.');const selected=selectedNewRequests();if(!selected.length)return alert('Select at least one request.');try{const batch=db.batch();selected.forEach(x=>{const ref=db.collection('ancillaryRequests').doc();batch.set(ref,{...patient,department:x.department,category:x.category,specificRequest:x.specificRequest,otherNote:x.otherNote||'',ancillaryNote:'',status:'pending',requestedAt:firebase.firestore.FieldValue.serverTimestamp(),requestedBy:currentUser.uid,requestedByName:profile.fullName||profile.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});await batch.commit();closeModal()}catch(x){alert('Unable to submit requests: '+x.message)}}
 async function saveEdit(){if(!isRequester())return alert('Department accounts have read-only request details.');const d=dataFromForm(),e=validate(d);if(e)return alert(e);try{await db.collection('ancillaryRequests').doc(editingId).update({...d,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save changes: '+x.message)}}
-async function saveAncillaryNote(){try{await db.collection('ancillaryRequests').doc(editingId).update({ancillaryNote:$('sfAncillaryNote').value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save note: '+x.message)}}
+async function saveAncillaryNote(){if(isRequester())return alert('Department response notes are read-only for requesters.');try{await db.collection('ancillaryRequests').doc(editingId).update({ancillaryNote:$('sfAncillaryNote').value.trim().toUpperCase(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save department response note: '+x.message)}}
 async function setStatus(next){const allowed=['pending','acknowledged','sent','received','denied'];if(!allowed.includes(next))return;const patch={status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};const ts=firebase.firestore.FieldValue.serverTimestamp();if(next==='acknowledged')patch.acknowledgedAt=ts;if(next==='sent')patch.sentAt=ts;if(next==='received')patch.receivedAt=ts;if(next==='denied')patch.deniedAt=ts;try{await db.collection('ancillaryRequests').doc(editingId).update(patch);closeModal()}catch(e){alert('Unable to update status: '+e.message)}}
 async function deleteCurrent(){const target=editingId?requests.find(x=>x.id===editingId):null;const key=target?(patientIdentity(target)||target.id):(window.__openPatientIdentity||null);if(!key)return;const matches=requests.filter(x=>(patientIdentity(x)||x.id)===key);if(!matches.length)return;if(!confirm('Delete this patient and all associated requests? This cannot be undone.'))return;try{const batch=db.batch();matches.forEach(r=>batch.delete(db.collection('ancillaryRequests').doc(r.id)));await batch.commit();closeModal()}catch(e){alert('Unable to delete patient: '+e.message)}}
 $('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -504,5 +602,79 @@ button,input,select,textarea,.nav-btn,.filter,.req-dept,.req-cat,.req-specific,.
   .request-row .req-icon{width:27px;height:27px}
   .request-row .req-simple-name{font-size:10px}
   .request-row .req-date,.request-row .req-status{font-size:8px}
+}
+</style>
+
+<style id="request-detail-v8">
+/* Details are read-only without looking disabled/greyed out */
+#singleRequestMode input[readonly],
+#singleRequestMode textarea[readonly],
+#singleRequestMode select:disabled{
+  background:#fff!important;
+  color:#111!important;
+  opacity:1!important;
+  -webkit-text-fill-color:#111!important;
+  cursor:default;
+}
+#singleRequestMode #sfAncillaryNote{
+  min-height:110px;
+  resize:vertical;
+  font-family:Arial,Helvetica,sans-serif!important;
+}
+#singleRequestMode .field.full:has(#sfSpecific){margin-top:4px}
+#singleRequestMode .field.full:has(#sfRequesterNote){margin-top:4px}
+#singleRequestMode .field.full:has(#sfAncillaryNote){margin-top:8px}
+.other-request-name,.other-request-note{
+  width:100%;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:13px!important;
+  text-transform:uppercase;
+}
+.other-request-note{min-height:90px;margin-top:7px;resize:vertical}
+.requester-user #singleRequestMode #sfAncillaryNote{background:#fff!important}
+</style>
+
+<style id="department-readonly-v8">
+.department-user #singleRequestMode input,
+.department-user #singleRequestMode textarea,
+.department-user #singleRequestMode select{
+  pointer-events:auto!important;
+}
+.department-user #singleRequestMode input[readonly],
+.department-user #singleRequestMode textarea[readonly],
+.department-user #singleRequestMode select:disabled{
+  background:#fff!important;
+  color:#111!important;
+  opacity:1!important;
+  -webkit-text-fill-color:#111!important;
+}
+.department-user #singleRequestMode #sfAncillaryNote:not([readonly]){
+  border-color:#cfcfcf;
+  background:#fff;
+}
+</style>
+
+<style id="request-details-visible-v8">
+/* Request-details modal: show the full request for requesters too */
+.requester-user #singleRequestMode #sfSpecific,
+.requester-user #singleRequestMode #sfRequesterNote,
+.requester-user #singleRequestMode label[for="sfSpecific"],
+.requester-user #singleRequestMode label[for="sfRequesterNote"],
+.requester-user #singleRequestMode .field:has(#sfSpecific),
+.requester-user #singleRequestMode .field:has(#sfRequesterNote){
+  display:flex!important;
+}
+.requester-user #singleRequestMode #sfSpecific{
+  min-height:90px;
+  resize:vertical;
+  font-family:Arial,Helvetica,sans-serif!important;
+}
+.requester-user #singleRequestMode #sfAncillaryNote{
+  min-height:110px;
+}
+.requester-user #singleRequestMode .field:has(#sfSpecific),
+.requester-user #singleRequestMode .field:has(#sfRequesterNote),
+.requester-user #singleRequestMode .field:has(#sfAncillaryNote){
+  flex-direction:column!important;
 }
 </style>
