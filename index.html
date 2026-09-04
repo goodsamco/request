@@ -194,7 +194,7 @@ body{background:#f3f5f7;color:var(--ink);padding-bottom:0;font-family:Georgia,"T
     <div class="field"><label>Sex</label><select id="fSex"><option value="">Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></div>
     <div class="field full"><label>Date of Admission</label><input id="fAdmission" type="date"></div>
   </div>
-  <div class="multi-request-box" style="margin-top:12px"><div class="multi-section-title">Select all requests needed for this patient</div><div id="requestChoices"></div><div class="multi-hint">You can select several requests at once. Each selected request is automatically saved to its concerned department (Laboratory, Radiology, or Nursing).</div></div>
+  <div class="multi-request-box" style="margin-top:12px"><div class="multi-section-title">Select all requests needed for this patient</div><div id="requestChoices"></div><div class="multi-hint">Select all requests needed for this patient. Specific details are optional.</div></div>
   <div class="field full" style="margin-top:11px"><label>Requesting-side Note</label><textarea id="fRequesterNote"></textarea></div>
 </div>
 <div id="singleRequestMode" style="display:none">
@@ -262,12 +262,22 @@ function subscribe(){
  const timer=setTimeout(()=>{if(!firstSnapshot)$('cards').innerHTML='<div class="empty"><b>Firestore listener did not return data.</b><br><small>Check Firestore Rules and make sure this account can read <b>ancillaryRequests</b>.</small></div>';},10000);
  unsubscribe=db.collection('ancillaryRequests').onSnapshot(s=>{firstSnapshot=true;clearTimeout(timer);requests=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{const av=a.requestedAt?.toDate?a.requestedAt.toDate():new Date(a.requestedAt||0);const bv=b.requestedAt?.toDate?b.requestedAt.toDate():new Date(b.requestedAt||0);return bv-av});render();},e=>{firstSnapshot=true;clearTimeout(timer);$('cards').innerHTML='<div class="empty"><b>Unable to read ancillaryRequests.</b><br><small>'+esc(e.message||String(e))+'</small></div>';console.error('ancillaryRequests listener error:',e);});
 }
+
+function patientIdentity(r){
+  return [
+    normalizeName(r.patientName),
+    String(r.age||'').trim(),
+    String(r.sex||'').trim().toLowerCase(),
+    String(r.admissionDate||'').trim()
+  ].join('|');
+}
+
 function normalizeName(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ')}
 function moduleLabel(m){return{laboratory:'Laboratory',radiology:'Radiology',nursing:'Nursing',all:'All Departments'}[m]||m}
 function iconForDept(d){if(d==='laboratory')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6.2L5.1 16a3 3 0 0 0 2.6 4.5h8.6a3 3 0 0 0 2.6-4.5L15 9.2V3M8 3h8M7.4 16h9.2"/></svg>';if(d==='radiology')return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 5v14M5 12h14"/></svg>';return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8v14H8zM10 3h4M10 9h4M10 13h4M10 17h4"/></svg>'}
 function requestsInRange(){return requests.filter(r=>{if(moduleName!=='all'&&r.department!==moduleName)return false;const d=r.requestedAt?.toDate?r.requestedAt.toDate():new Date(r.requestedAt||0);if(isNaN(d))return false;if(dateMode==='month'){return d.getFullYear()===selectedDate.getFullYear()&&d.getMonth()===selectedDate.getMonth()}return sameDay(r.requestedAt,selectedDate)})}
 function visibleRequests(){const q=$('search').value.trim().toLowerCase();return requestsInRange().filter(r=>{if(statusFilter!=='all'&&r.status!==statusFilter)return false;if(categoryFilter!=='all'&&r.category!==categoryFilter)return false;if(q&&!['patientName','category','specificRequest','status','department','requestedByName'].some(k=>String(r[k]||'').toLowerCase().includes(q)))return false;return true})}
-function isCompletedStatus(s){return ['received','completed','done'].includes(String(s||'').toLowerCase())}function groupRequests(arr){const map=new Map();arr.forEach(r=>{const key=normalizeName(r.patientName)||r.id;if(!map.has(key))map.set(key,[]);map.get(key).push(r)});return [...map.values()].sort((a,b)=>{const at=a[0]?.requestedAt?.toDate?a[0].requestedAt.toDate():new Date(a[0]?.requestedAt||0);const bt=b[0]?.requestedAt?.toDate?b[0].requestedAt.toDate():new Date(b[0]?.requestedAt||0);return bt-at})}
+function isCompletedStatus(s){return ['received','completed','done'].includes(String(s||'').toLowerCase())}function groupRequests(arr){const map=new Map();arr.forEach(r=>{const key=patientIdentity(r)||r.id;if(!map.has(key))map.set(key,[]);map.get(key).push(r)});return [...map.values()].sort((a,b)=>{const at=a[0]?.requestedAt?.toDate?a[0].requestedAt.toDate():new Date(a[0]?.requestedAt||0);const bt=b[0]?.requestedAt?.toDate?b[0].requestedAt.toDate():new Date(b[0]?.requestedAt||0);return bt-at})}
 function render(){const dLabel=dateMode==='month'?selectedDate.toLocaleDateString(undefined,{month:'long',year:'numeric'}):selectedDate.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});$('dateLabel').textContent=dLabel;updateFilterBadge();renderCalendar();const filtered=visibleRequests();let groups=groupRequests(filtered);groups.sort((a,b)=>{const ad=a.some(r=>!isCompletedStatus(r.status)),bd=b.some(r=>!isCompletedStatus(r.status));if(ad!==bd)return ad?-1:1;const at=a[0]?.requestedAt?.toDate?a[0].requestedAt.toDate():new Date(a[0]?.requestedAt||0);const bt=b[0]?.requestedAt?.toDate?b[0].requestedAt.toDate():new Date(b[0]?.requestedAt||0);return bt-at});if($('patientTotal'))$('patientTotal').textContent=groups.length;if($('requestTotal'))$('requestTotal').textContent=filtered.length;if($('viewModePill'))$('viewModePill').textContent=dateMode==='month'?'Whole month':dLabel;if(!groups.length){$('cards').innerHTML='<div class="empty">No patients or requests match the current filters.</div>';return}
 $('cards').innerHTML=groups.map(group=>{const first=group[0]||{};const departments=[...new Set(group.map(r=>moduleLabel(r.department)))];const active=group.filter(r=>!isCompletedStatus(r.status));const completed=group.filter(r=>isCompletedStatus(r.status));const rowHTML=r=>{const cat=listFor(r.department).find(x=>x.key===r.category)||{label:r.category||'Request',color:'#fff'};const done=isCompletedStatus(r.status);return `<div class="request-row${done?' completed-row':''} request-${esc(r.category||'other')}" style="--request-color:${cat.color}" onclick="openRequest('${r.id}')"><div class="req-icon">${iconForDept(r.department)}</div><div class="req-main"><div class="req-top"><span class="req-dept">${esc(moduleLabel(r.department))}</span><span class="req-cat" style="background:${cat.color}">${esc(cat.label)}</span></div><div class="req-specific">${esc(r.specificRequest||'No specific request')}</div><div class="req-sub">${esc(r.status?statusLabel(r.status):'Pending')} • ${dateTimeText(r.requestedAt)}</div></div><div>${r.status==='received'?'<div class="received-mark">✓</div>':''}<div class="req-status">${statusIcon(r.status)} ${esc((statusLabel(r.status)||'').split(' / ')[0])}</div><div class="req-time">›</div></div></div>`};return `<article class="patient-card${active.length?'':' completed-card'}"><div class="patient-head"><div><div class="patient-name">${esc(first.patientName||'Unknown Patient')}</div><div class="patient-meta">${esc(first.age||'—')} / ${esc(first.sex||'—')} • Admitted: ${dateText(first.admissionDate)}</div></div></div><div class="request-list">${active.map(rowHTML).join('')}${completed.length?`<details class="completed-group"><summary class="completed-toggle"><span>Completed / Done (${completed.length})</span><span class="chevron">⌄</span></summary><div>${completed.map(rowHTML).join('')}</div></details>`:''}</div><div class="patient-foot"><span>${esc(departments.join(' • '))}</span><span>${completed.length?'Completed items are collapsed':'Tap a request to open'}</span></div></article>`}).join('')}
 function buildFilters(){const statusBox=$('statusFilters'),catBox=$('categoryFilters');statusBox.innerHTML=[['all','All'],['pending','Pending'],['acknowledged','Acknowledged'],['denied','Denied'],['sent','Sent'],['received','Received']].map(x=>`<button class="filter ${statusFilter===x[0]?'active':''}" onclick="statusFilter='${x[0]}';buildFilters();render()">${x[1]}</button>`).join('');const cats=moduleName==='all'?[['all','All'],...LAB.map(x=>[x.key,x.label]),...RAD.map(x=>[x.key,x.label]),...NUR.map(x=>[x.key,x.label])]:[['all','All'],...listFor().map(x=>[x.key,x.label])];catBox.innerHTML=cats.filter((x,i,a)=>a.findIndex(y=>y[0]===x[0])===i).map(x=>`<button class="filter ${categoryFilter===x[0]?'active':''}" onclick="categoryFilter='${x[0]}';buildFilters();render()">${x[1]}</button>`).join('')}
@@ -289,7 +299,8 @@ function updateHelp(){const dept=editingId?(requests.find(x=>x.id===editingId)?.
 function clearForm(){['fName','fAge','fRequesterNote'].forEach(id=>$(id).value='');$('fSex').value='';$('fAdmission').value=dayKey(new Date())}
 
 function openPatient(key){
-  const matches=requests.filter(r=>(normalizeName(r.patientName)||r.id)===key);
+  key=decodeURIComponent(key);
+  const matches=requests.filter(r=>(patientIdentity(r)||r.id)===key);
   if(!matches.length)return;
   editingId=null;
   $('modalTitle').textContent='Patient Requests';
@@ -330,7 +341,7 @@ async function savePatientRequests(){
   if(!patient.patientName||!patient.age||!patient.sex||!patient.admissionDate)return alert('Complete the patient details.');
   const selected=selectedNewRequests();
   if(!selected.length)return alert('Select at least one request.');
-  const existing=requests.filter(r=>normalizeName(r.patientName)===normalizeName(patient.patientName));
+  const currentIdentity=patientIdentity({...patient}); const existing=requests.filter(r=>(patientIdentity(r)||r.id)===currentIdentity);
   const batch=db.batch();
   const selectedKeys=new Set(selected.map(x=>x.department+'|'+x.category));
   existing.forEach(r=>{
@@ -378,4 +389,17 @@ button,input,select,textarea,.nav-btn,.filter,.req-dept,.req-cat,.req-specific,.
 .request-list{position:relative}
 .request-count{display:none!important}
 .choice-detail input{font-family:Arial,Helvetica,sans-serif}
+</style>
+
+<style id="request-simplification">
+.req-simple-name{font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:#26323c}
+.request-row .req-time{margin-left:auto}
+.request-row .req-main{display:flex;align-items:center;min-width:0}
+.request-row .req-icon{flex:0 0 32px}
+.requester-user #singleRequestMode #sfSpecific,
+.requester-user #singleRequestMode #sfRequesterNote{display:none}
+.requester-user #singleRequestMode label[for="sfSpecific"],
+.requester-user #singleRequestMode label[for="sfRequesterNote"]{display:none}
+.requester-user #singleRequestMode .field:has(#sfSpecific),
+.requester-user #singleRequestMode .field:has(#sfRequesterNote){display:none}
 </style>
