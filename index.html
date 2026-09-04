@@ -8,7 +8,6 @@
 .header{padding:20px 24px 16px;border-bottom:1px solid #e2e2e2;display:flex;justify-content:space-between;gap:18px;align-items:center}.brand{display:flex;gap:14px;align-items:center}.logo{width:54px;height:54px;object-fit:contain}.brand-title{font:700 20px Georgia,"Times New Roman",serif}.brand-sub{font-size:12px;color:#666;margin-top:3px}.account{display:flex;align-items:center;gap:9px;font-size:12px;color:#666}.logout{border:1px solid #d5d5d5;background:#fff;border-radius:8px;padding:8px 10px;font-weight:700}
 .body{padding:24px}.title-row{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px}h1{font:700 26px Georgia,"Times New Roman",serif;margin:0 0 4px}.subtitle{font-size:12px;color:#777;margin:0}.role-note{font-size:10px;color:#888;margin-top:7px}
 .primary{border:0;background:#111;color:#fff;border-radius:9px;padding:11px 15px;font-weight:700}.secondary{border:1px solid #d2d2d2;background:#f7f7f7;color:#111;border-radius:9px;padding:10px 13px;font-weight:700}.danger{border:1px solid #e0caca;background:#fff6f6;color:#8a1f1f;border-radius:8px;padding:8px 10px;font-weight:700}
-.module-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.module{border:1px solid #ddd;background:#fafafa;border-radius:10px;padding:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px}.module.active{background:#111;color:#fff;border-color:#111}
 .toolbar{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:8px;margin-bottom:9px}.search{border:1px solid #cfcfcf;border-radius:9px;padding:11px 12px;outline:0}.search:focus{border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,.07)}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.filter{border:1px solid #d7d7d7;background:#fff;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:700}.filter.active{background:#111;color:#fff;border-color:#111}
 .datebar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fafafa;border:1px solid #e2e2e2;border-radius:10px;padding:9px 10px;margin-bottom:15px}.datecenter{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}.datecenter button{border:0;background:transparent;font-size:20px;line-height:1;padding:2px 6px}.date-actions{display:flex;gap:5px}.date-actions button{border:1px solid #ddd;background:#fff;border-radius:7px;padding:6px 8px;font-size:10px;font-weight:700}
@@ -29,10 +28,7 @@
 <div class="account"><span id="userName">Loading…</span><button class="logout" onclick="logout()">Logout</button></div></header>
 <main class="body">
 <div class="title-row"><div><h1 id="pageTitle">Laboratory Requests</h1><p class="subtitle" id="pageSubtitle">Patient details → request → submit</p><div class="role-note" id="roleNote"></div></div><button class="primary" onclick="openNew()">+ New Request</button></div>
-<nav class="module-nav">
-<button class="module active" data-module="laboratory" onclick="setModule('laboratory')">🧪 Laboratory</button>
-<button class="module" data-module="radiology" onclick="setModule('radiology')">🩻 Radiology</button>
-<button class="module" data-module="nursing" onclick="setModule('nursing')">👩‍⚕️ Nursing</button></nav>
+
 <div class="toolbar"><input class="search" id="search" placeholder="🔍 Search patient name..." oninput="render()"><button class="secondary" onclick="setQuickDate('today')">Today</button><button class="secondary" onclick="setQuickDate('month')">This Month</button></div>
 <div class="filters" id="statusFilters"></div><div class="filters" id="categoryFilters"></div>
 <div class="datebar"><div class="datecenter"><button onclick="moveDate(-1)">‹</button><span id="dateLabel"></span><button onclick="moveDate(1)">›</button></div><div class="date-actions"><button onclick="setQuickDate('yesterday')">Yesterday</button><button onclick="setQuickDate('week')">This Week</button><button onclick="pickDate()">Custom Date</button></div></div>
@@ -56,7 +52,7 @@
 </div></div>
 
 <script>
-const firebaseConfig={"apiKey": "AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ", "authDomain": "svls-289ee.firebaseapp.com", "databaseURL": "https://svls-289ee-default-rtdb.firebaseio.com", "projectId": "svls-289ee", "storageBucket": "svls-289ee.firebasestorage.app", "messagingSenderId": "500705386198", "appId": "1:500705386198:web:96f189662bc2aa99cf7377", "measurementId": "G-5TNBMQ2HN5"};firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.settings({experimentalForceLongPolling:true,useFetchStreams:false});const auth=firebase.auth();
+const firebaseConfig={"apiKey": "AIzaSyDaeNQF4qmW0vvwxUPp_NztnT0hoLzm1BQ", "authDomain": "svls-289ee.firebaseapp.com", "databaseURL": "https://svls-289ee-default-rtdb.firebaseio.com", "projectId": "svls-289ee", "storageBucket": "svls-289ee.firebasestorage.app", "messagingSenderId": "500705386198", "appId": "1:500705386198:web:96f189662bc2aa99cf7377", "measurementId": "G-5TNBMQ2HN5"};firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.settings({experimentalForceLongPolling:true,experimentalAutoDetectLongPolling:false,useFetchStreams:false});const auth=firebase.auth();
 let currentUser=null,profile=null,requests=[],unsubscribe=null,moduleName='laboratory',statusFilter='all',categoryFilter='all',selectedDate=new Date(),editingId=null;
 const LAB=[{key:'clinical_microscopy',label:'Clinical Microscopy',color:'#fff6cc',help:'Specify requested examination, e.g. Urinalysis, Fecalysis, etc.'},{key:'hematology',label:'Hematology',color:'#fbe7e7',help:'Specify the requested hematology examination.'},{key:'clinical_chemistry',label:'Clinical Chemistry',color:'#eaf5e2',help:'Specify the requested chemistry examination.'},{key:'others',label:'Others',color:'#fff',help:'Specify the requested laboratory examination.'}];
 const RAD=[{key:'xray',label:'X-Ray',color:'#e7eef8',help:'Specify the body part and requested X-Ray examination.'},{key:'ultrasound',label:'Ultrasound',color:'#eee8f8',help:'Specify the requested ultrasound examination.'}];
@@ -66,24 +62,33 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function listFor(m=moduleName){return m==='laboratory'?LAB:m==='radiology'?RAD:NUR}
 function dateText(v){if(!v)return'—';const d=v?.toDate?v.toDate():new Date(v);return isNaN(d)?'—':d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'2-digit'})}
 function dateTimeText(v){if(!v)return'—';const d=v?.toDate?v.toDate():new Date(v);return isNaN(d)?'—':d.toLocaleString(undefined,{month:'short',day:'2-digit',hour:'numeric',minute:'2-digit'})}
-function dayKey(d){return new Date(d).toISOString().slice(0,10)}function sameDay(v,d){if(!v)return false;const x=v?.toDate?v.toDate():new Date(v);return dayKey(x)===dayKey(d)}
+function dayKey(d){const x=d instanceof Date?d:new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}function sameDay(v,d){if(!v)return false;const x=v?.toDate?v.toDate():new Date(v);return dayKey(x)===dayKey(d)}
 function statusIcon(s){return{pending:'🕐',acknowledged:'🔄',denied:'❌',sent:'📤',received:'✓'}[s]||'•'}
 function statusLabel(s){return{pending:'Pending',acknowledged:'Acknowledged / On Process',denied:'Denied / Not Applicable',sent:'Sent / Processed',received:'Received'}[s]||s}
 function isRequester(){return !['laboratory','radiology','nursing','admin'].includes(profile?.role)}
 function canProcess(){return ['laboratory','radiology','nursing','admin'].includes(profile?.role)||['laboratory','radiology','nursing'].includes(profile?.department)}
 
 auth.onAuthStateChanged(async user=>{
- if(!user){location.href='login.html';return} currentUser=user;
- $('cards').innerHTML='<div class="loading">Connecting to Firestore…</div>';
- try{const profilePromise=db.collection('users').doc(user.uid).get();const s=await Promise.race([profilePromise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Firestore connection timed out after 12 seconds.')),12000))]);if(!s.exists){await auth.signOut();alert('No Firestore user profile was found for this account.');return}
- profile=s.data();if(profile.approved===false){await auth.signOut();alert('Your account is pending administrator approval.');return}
- $('userName').textContent=profile.fullName||profile.email||user.email;$('roleNote').textContent='Signed in as '+(profile.role||'requester')+(profile.department?' • '+profile.department:'');
- if(profile.role==='laboratory'||profile.department==='laboratory')setModule('laboratory');else if(profile.role==='radiology'||profile.department==='radiology')setModule('radiology');else if(profile.role==='nursing'||profile.department==='nursing')setModule('nursing');
- buildFilters();subscribe();
- }catch(e){console.error('Firestore startup error:',e);$('cards').innerHTML='<div class="empty"><b>Firestore connection failed.</b><br><small>'+esc(e.message||'Unknown Firestore error')+'</small><br><br>Open the browser console (F12) for the exact Firebase error.</div>';}
+ if(!user){$('cards').innerHTML='<div class="empty"><b>No signed-in user.</b><br>Please log in first.</div>';setTimeout(()=>location.href='login.html',700);return;}
+ currentUser=user;$('cards').innerHTML='<div class="loading">Connecting to Firestore…</div>';
+ try{
+  await withTimeout(db.enableNetwork(),'Firestore network initialization',8000);
+  const snap=await withTimeout(db.collection('users').doc(user.uid).get({source:'server'}),'Firestore user-profile read',10000);
+  if(!snap.exists){await auth.signOut();throw new Error('NO_USER_PROFILE: No user profile was found in Firestore for this signed-in account (users/'+user.uid+').');}
+  profile=snap.data()||{};
+  if(profile.approved===false){await auth.signOut();throw new Error('ACCOUNT_PENDING: Your account is pending administrator approval.');}
+  $('userName').textContent=profile.fullName||profile.email||user.email||'User';$('roleNote').textContent='Signed in as '+(profile.role||'requester')+(profile.department?' • '+profile.department:'');
+  if(profile.role==='laboratory'||profile.department==='laboratory')setModule('laboratory');else if(profile.role==='radiology'||profile.department==='radiology')setModule('radiology');else if(profile.role==='nursing'||profile.department==='nursing')setModule('nursing');
+  buildFilters();subscribe();
+ }catch(e){console.error('Firebase startup error:',e);$('cards').innerHTML='<div class="empty"><b>Firebase/Firestore could not be connected.</b><br><small>'+esc(e.message||String(e))+'</small><br><br><button class="secondary" onclick="location.reload()">Retry</button></div>';}
 });
+function withTimeout(promise,label,ms){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' timed out after '+ms+' ms. Check Firestore availability, Firebase Rules, network access, and the browser console.')),ms))]);}
 async function logout(){if(unsubscribe)unsubscribe();await auth.signOut();location.href='login.html'}
-function subscribe(){if(unsubscribe)unsubscribe();$('cards').innerHTML='<div class="loading">Loading requests…</div>';unsubscribe=db.collection('ancillaryRequests').orderBy('requestedAt','desc').onSnapshot(s=>{requests=s.docs.map(d=>({id:d.id,...d.data()}));render()},e=>{$('cards').innerHTML='<div class="empty"><b>Unable to read ancillary requests.</b><br><small>'+esc(e.message||'Unknown Firestore error')+'</small></div>';console.error('ancillaryRequests listener error:',e)})}
+function subscribe(){
+ if(unsubscribe)unsubscribe();$('cards').innerHTML='<div class="loading">Loading requests…</div>';let firstSnapshot=false;
+ const timer=setTimeout(()=>{if(!firstSnapshot)$('cards').innerHTML='<div class="empty"><b>Firestore listener did not return data.</b><br><small>Check Firestore Rules and make sure this account can read <b>ancillaryRequests</b>.</small></div>';},10000);
+ unsubscribe=db.collection('ancillaryRequests').onSnapshot(s=>{firstSnapshot=true;clearTimeout(timer);requests=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{const av=a.requestedAt?.toDate?a.requestedAt.toDate():new Date(a.requestedAt||0);const bv=b.requestedAt?.toDate?b.requestedAt.toDate():new Date(b.requestedAt||0);return bv-av});render();},e=>{firstSnapshot=true;clearTimeout(timer);$('cards').innerHTML='<div class="empty"><b>Unable to read ancillaryRequests.</b><br><small>'+esc(e.message||String(e))+'</small></div>';console.error('ancillaryRequests listener error:',e);});
+}
 function visibleRequests(){const q=$('search').value.trim().toLowerCase();return requests.filter(r=>{
  if(r.department!==moduleName)return false;if(!sameDay(r.requestedAt,selectedDate))return false;if(statusFilter!=='all'&&r.status!==statusFilter)return false;if(categoryFilter!=='all'&&r.category!==categoryFilter)return false;
  if(q&&!['patientName','category','specificRequest','status'].some(k=>String(r[k]||'').toLowerCase().includes(q)))return false;return true})}
