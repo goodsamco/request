@@ -35,6 +35,51 @@
  .modal{max-height:94vh}.modal-head{padding:10px 11px}.modal-title{font-size:15px}.modal-body{padding:10px}.form-grid{gap:7px}input,select,textarea{padding:7px 8px;font-size:11px}textarea{min-height:60px}.modal-foot{padding:8px 10px}
 }
 @media(min-width:761px){.toolbar{grid-template-columns:minmax(0,1fr) auto}.summary-strip{margin-top:-5px}}
+
+/* FINAL LAYOUT: four clean content lines */
+.toolbar{grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:6px}
+.new-request{white-space:nowrap}
+.summary-strip{margin:0 0 6px}
+.line-three{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
+.line-three button{width:100%;height:34px;padding:7px 10px;font-size:10px}
+.datebar{margin-bottom:6px}
+.cards{display:block;width:100%}
+.patient-card{width:100%;margin:0 0 7px}
+.patient-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.patient-name{font-weight:800}
+.request-list{display:flex;flex-direction:column}
+.request-row{width:100%;min-width:0}
+.multi-request-box{border:1px solid #ddd;border-radius:10px;background:#fafafa;padding:10px}
+.multi-section+.multi-section{margin-top:10px}
+.multi-section-title{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#666;margin:0 0 6px}
+.request-choice{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:8px 7px;border:1px solid #e3e3e3;border-radius:8px;background:#fff;margin-bottom:5px}
+.request-choice input{margin-top:2px;width:16px;height:16px}
+.request-choice label{font-size:11px;line-height:1.3;cursor:pointer}
+.request-choice small{display:block;color:#777;font-weight:400;margin-top:2px}
+.choice-detail{display:none;grid-column:2;margin-top:2px}
+.choice-detail.show{display:block}
+.choice-detail input{width:100%;padding:8px;font-size:11px}
+.multi-hint{font-size:10px;color:#777;line-height:1.4;margin:7px 0 0}
+.patient-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.patient-form-grid .field.full{grid-column:1/-1}
+.modal.multi .modal-body{padding-top:14px}
+.modal.multi .modal-title{font-size:18px}
+@media(max-width:760px){
+  .toolbar{grid-template-columns:minmax(0,1fr) auto}
+  .new-request{font-size:10px;padding:8px 9px}
+  .summary-strip{margin-bottom:6px}
+  .datebar{padding:6px 7px}
+  .date-actions button{display:none}
+  .patient-card{border-radius:10px}
+  .patient-head{padding:8px 9px}
+  .patient-foot{padding:6px 9px}
+  .request-choice{padding:8px 6px}
+  .patient-form-grid{grid-template-columns:1fr}
+  .patient-form-grid .field.full{grid-column:auto}
+}
+@media(min-width:761px){
+  .bottom-nav{display:none!important}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -45,11 +90,11 @@
 <div><div class="brand-title">MLANG GOOD SAMARITAN HOSPITAL CO.</div><div class="brand-sub">Ancillary Results Request • Online Requests</div></div></div>
 <div class="account"><span id="userName">Loading…</span><button class="logout" onclick="logout()">Logout</button></div></header>
 <main class="body">
-<div class="title-row"><div><h1 id="pageTitle">Laboratory Requests</h1><p class="subtitle" id="pageSubtitle">Patient details → request → submit</p><div class="role-note" id="roleNote"></div></div><button class="primary" onclick="openNew()">+ New Request</button></div>
-
-<div class="toolbar"><input class="search" id="search" placeholder="🔍 Search patient or request..." oninput="render()"><button class="secondary filter-toggle" onclick="toggleFilters()">☰ Filters<span class="badge" id="filterBadge" style="display:none">0</span></button></div><div class="summary-strip"><span class="summary-pill"><strong id="patientTotal">0</strong> patients</span><span class="summary-pill"><strong id="requestTotal">0</strong> requests</span><span class="summary-pill" id="viewModePill">Whole month</span></div>
+<div class="toolbar"><input class="search" id="search" placeholder="🔍 Search patient name or request..." oninput="render()"><button class="primary new-request" onclick="openNew()">+ New Request</button></div>
+<div class="summary-strip"><span class="summary-pill"><strong id="patientTotal">0</strong> patients</span><span class="summary-pill"><strong id="requestTotal">0</strong> requests</span><span class="summary-pill" id="viewModePill">Whole month</span></div>
+<div class="line-three"><button class="secondary filter-toggle" onclick="toggleFilters()">☰ Filters<span class="badge" id="filterBadge" style="display:none">0</span></button><button class="secondary calendar-toggle" onclick="toggleCalendar()">📅 Calendar</button></div>
 <div class="filter-panel" id="filterPanel"><div class="filter-section"><span class="filter-label">Status</span><div id="statusFilters"></div></div><div class="filter-section"><span class="filter-label">Type</span><div id="categoryFilters"></div></div><div class="quick-actions"><button class="secondary" onclick="setQuickDate('today')">Today</button><button class="secondary" onclick="setQuickDate('month')">Whole Month</button><button class="secondary" onclick="setQuickDate('week')">This Week</button><button class="secondary" onclick="pickDate()">Date</button><button class="secondary" onclick="clearFilters()">Clear</button></div></div>
-<div class="datebar"><div class="datecenter"><button onclick="moveDate(-1)">‹</button><span id="dateLabel"></span><button onclick="moveDate(1)">›</button></div><div class="date-actions"><button onclick="toggleCalendar()">📅 Calendar</button><button onclick="setQuickDate('today')">Today</button></div></div>
+<div class="datebar"><div class="datecenter"><button onclick="moveDate(-1)">‹</button><span id="dateLabel"></span><button onclick="moveDate(1)">›</button></div><div class="date-actions"><button onclick="setQuickDate('today')">Today</button></div></div>
 <div class="calendar-panel" id="calendarPanel"><div class="calendar-head"><button onclick="moveCalendarMonth(-1)">‹</button><span class="calendar-title" id="calendarTitle"></span><button onclick="moveCalendarMonth(1)">›</button></div><div class="calendar-grid" id="calendarGrid"></div></div>
 <div id="cards" class="cards"><div class="loading">Connecting to Firestore…</div></div>
 </main>
@@ -59,14 +104,32 @@
 <button class="nav-btn" data-module="nursing" onclick="setModule('nursing')"><span class="nav-icon">👩‍⚕️</span><span>Nursing</span></button>
 </div></nav></div></div>
 
-<div class="modal-backdrop" id="modal"><div class="modal"><div class="modal-head"><div class="modal-title" id="modalTitle">New Request</div><button class="close" onclick="closeModal()">×</button></div>
-<div class="modal-body"><div class="form-grid">
-<div class="field full"><label>Full Name</label><input id="fName"></div><div class="field"><label>Age</label><input id="fAge" type="number" min="0" max="130"></div><div class="field"><label>Sex</label><select id="fSex"><option value="">Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></div>
-<div class="field"><label>Date of Admission</label><input id="fAdmission" type="date"></div><div class="field" id="departmentField"><label>Department</label><select id="fDepartment"><option value="laboratory">Laboratory</option><option value="radiology">Radiology</option><option value="nursing">Nursing</option></select></div><div class="field"><label>Request Type / Category</label><select id="fCategory"></select></div>
-<div class="field full"><label>Specific Request / Examination</label><input id="fSpecific" placeholder="Specify the examination or request"></div>
-<div class="field full"><label>Requesting-side Note</label><textarea id="fRequesterNote"></textarea></div>
-<div class="field full"><label id="ancillaryNoteLabel">Laboratory Note</label><textarea id="fAncillaryNote"></textarea></div>
-</div><div class="note-box" id="categoryHelp"></div></div>
+<div class="modal-backdrop" id="modal"><div class="modal" id="requestModal">
+<div class="modal-head"><div class="modal-title" id="modalTitle">New Patient Request</div><button class="close" onclick="closeModal()">×</button></div>
+<div class="modal-body">
+<div id="multiRequestMode">
+  <div class="patient-form-grid">
+    <div class="field full"><label>Patient Full Name</label><input id="fName"></div>
+    <div class="field"><label>Age</label><input id="fAge" type="number" min="0" max="130"></div>
+    <div class="field"><label>Sex</label><select id="fSex"><option value="">Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+    <div class="field full"><label>Date of Admission</label><input id="fAdmission" type="date"></div>
+  </div>
+  <div class="multi-request-box" style="margin-top:12px"><div class="multi-section-title">Select all requests needed for this patient</div><div id="requestChoices"></div><div class="multi-hint">You can select several requests at once. Each selected request is automatically saved to its concerned department (Laboratory, Radiology, or Nursing).</div></div>
+  <div class="field full" style="margin-top:11px"><label>Requesting-side Note</label><textarea id="fRequesterNote"></textarea></div>
+</div>
+<div id="singleRequestMode" style="display:none">
+  <div class="patient-form-grid">
+    <div class="field full"><label>Full Name</label><input id="sfName"></div>
+    <div class="field"><label>Age</label><input id="sfAge" type="number" min="0" max="130"></div>
+    <div class="field"><label>Sex</label><select id="sfSex"><option value="">Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+    <div class="field"><label>Date of Admission</label><input id="sfAdmission" type="date"></div>
+    <div class="field full"><label>Request Type / Category</label><select id="sfCategory"></select></div>
+    <div class="field full"><label>Specific Request / Examination</label><input id="sfSpecific" placeholder="Specify the examination or request"></div>
+    <div class="field full"><label>Requesting-side Note</label><textarea id="sfRequesterNote"></textarea></div>
+    <div class="field full"><label id="ancillaryNoteLabel">Laboratory Note</label><textarea id="sfAncillaryNote"></textarea></div>
+  </div><div class="note-box" id="categoryHelp"></div>
+</div>
+</div>
 <div class="modal-foot"><div class="left-actions"><button class="danger" id="deleteBtn" onclick="deleteCurrent()">🗑️ Delete</button><button class="secondary" onclick="closeModal()">Cancel</button></div><div class="right-actions" id="workflowActions"></div></div>
 </div></div>
 
@@ -107,7 +170,7 @@ auth.onAuthStateChanged(async user=>{
   if(!snap.exists){await auth.signOut();throw new Error('NO_USER_PROFILE: No user profile was found in Firestore for this signed-in account (users/'+user.uid+').');}
   profile=snap.data()||{};
   if(profile.approved===false){await auth.signOut();throw new Error('ACCOUNT_PENDING: Your account is pending administrator approval.');}
-  $('userName').textContent=profile.fullName||profile.email||user.email||'User';$('roleNote').textContent='Signed in as '+(profile.role||'requester')+(profile.department?' • '+profile.department:'');
+  $('userName').textContent=profile.fullName||profile.email||user.email||'User';
   if(profile.role==='laboratory'||profile.department==='laboratory')setModule('laboratory');else if(profile.role==='radiology'||profile.department==='radiology')setModule('radiology');else if(profile.role==='nursing'||profile.department==='nursing')setModule('nursing');
   buildFilters();subscribe();
  }catch(e){console.error('Firebase startup error:',e);$('cards').innerHTML='<div class="empty"><b>Firebase/Firestore could not be connected.</b><br><small>'+esc(e.message||String(e))+'</small><br><br><button class="secondary" onclick="location.reload()">Retry</button></div>';}
@@ -128,7 +191,7 @@ function groupRequests(arr){const map=new Map();arr.forEach(r=>{const key=normal
 function render(){const dLabel=dateMode==='month'?selectedDate.toLocaleDateString(undefined,{month:'long',year:'numeric'}):selectedDate.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});$('dateLabel').textContent=dLabel;updateFilterBadge();renderCalendar();const filtered=visibleRequests();const groups=groupRequests(filtered);if($('patientTotal'))$('patientTotal').textContent=groups.length;if($('requestTotal'))$('requestTotal').textContent=filtered.length;if($('viewModePill'))$('viewModePill').textContent=dateMode==='month'?'Whole month':dLabel;if(!groups.length){$('cards').innerHTML='<div class="empty">No patients or requests match the current filters.</div>';return}
  $('cards').innerHTML=groups.map(group=>{const first=group[0]||{};const departments=[...new Set(group.map(r=>moduleLabel(r.department)))];return `<article class="patient-card"><div class="patient-head"><div><div class="patient-name">${esc(first.patientName||'Unknown Patient')}</div><div class="patient-meta">${esc(first.age||'—')} / ${esc(first.sex||'—')} • Admitted: ${dateText(first.admissionDate)}</div></div><div class="request-count">${group.length} request${group.length===1?'':'s'}<br><span>${departments.length} dept${departments.length===1?'':'s'}</span></div></div><div class="request-list">${group.map(r=>{const cat=listFor(r.department).find(x=>x.key===r.category)||{label:r.category||'Request',color:'#fff'};return `<div class="request-row" onclick="openRequest('${r.id}')"><div class="req-icon">${iconForDept(r.department)}</div><div class="req-main"><div class="req-top"><span class="req-dept">${esc(moduleLabel(r.department))}</span><span class="req-cat" style="background:${cat.color}">${esc(cat.label)}</span></div><div class="req-specific">${esc(r.specificRequest||'No specific request')}</div><div class="req-sub">${esc(r.status?statusLabel(r.status):'Pending')} • ${dateTimeText(r.requestedAt)}</div></div><div>${r.status==='received'?'<div class="received-mark">✓</div>':''}<div class="req-status">${statusIcon(r.status)} ${esc((statusLabel(r.status)||'').split(' / ')[0])}</div><div class="req-time">›</div></div></div>`}).join('')}</div><div class="patient-foot"><span>${esc(departments.join(' • '))}</span><span>Tap a request to open</span></div></article>`}).join('')}
 function buildFilters(){const statusBox=$('statusFilters'),catBox=$('categoryFilters');statusBox.innerHTML=[['all','All'],['pending','Pending'],['acknowledged','Acknowledged'],['denied','Denied'],['sent','Sent'],['received','Received']].map(x=>`<button class="filter ${statusFilter===x[0]?'active':''}" onclick="statusFilter='${x[0]}';buildFilters();render()">${x[1]}</button>`).join('');const cats=moduleName==='all'?[['all','All'],...LAB.map(x=>[x.key,x.label]),...RAD.map(x=>[x.key,x.label]),...NUR.map(x=>[x.key,x.label])]:[['all','All'],...listFor().map(x=>[x.key,x.label])];catBox.innerHTML=cats.filter((x,i,a)=>a.findIndex(y=>y[0]===x[0])===i).map(x=>`<button class="filter ${categoryFilter===x[0]?'active':''}" onclick="categoryFilter='${x[0]}';buildFilters();render()">${x[1]}</button>`).join('')}
-function setModule(m){moduleName=m;statusFilter='all';categoryFilter='all';dateMode='month';const t={all:['All Ancillary Requests','One patient • multiple requests • multiple departments'],laboratory:['Laboratory Requests','Patient details → multiple laboratory requests'],radiology:['Radiology Requests','One patient can have multiple radiology requests'],nursing:['Nursing Attendant Requests','One patient can have multiple nursing requests']}[m];$('pageTitle').textContent=t[0];$('pageSubtitle').textContent=t[1];document.querySelectorAll('[data-module]').forEach(x=>x.classList.toggle('active',x.dataset.module===m));$('departmentField').style.display=m==='all'?'flex':'none';if($('fDepartment'))$('fDepartment').value=m==='all'?'laboratory':m;buildFilters();render()}
+function setModule(m){moduleName=m;statusFilter='all';categoryFilter='all';dateMode='month';document.querySelectorAll('[data-module]').forEach(x=>x.classList.toggle('active',x.dataset.module===m));buildFilters();render()}
 function moveDate(n){selectedDate=new Date(selectedDate);selectedDate.setDate(selectedDate.getDate()+n);dateMode='day';calendarMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);render()}
 function setQuickDate(k){const n=new Date();if(k==='today'){selectedDate=n;dateMode='day'}if(k==='yesterday'){selectedDate=new Date(n);selectedDate.setDate(n.getDate()-1);dateMode='day'}if(k==='month'){selectedDate=new Date(n.getFullYear(),n.getMonth(),1);dateMode='month'}if(k==='week'){selectedDate=new Date(n);selectedDate.setDate(n.getDate()-n.getDay());dateMode='day'}calendarMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);render()}
 function pickDate(){const v=prompt('Enter date as YYYY-MM-DD',dayKey(selectedDate));if(/^\d{4}-\d{2}-\d{2}$/.test(v||'')){selectedDate=new Date(v+'T00:00:00');dateMode='day';calendarMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);render()}}
@@ -140,18 +203,22 @@ function moveCalendarMonth(n){calendarMonth=new Date(calendarMonth.getFullYear()
 function renderCalendar(){const title=$('calendarTitle');const grid=$('calendarGrid');if(!title||!grid)return;title.textContent=calendarMonth.toLocaleDateString(undefined,{month:'long',year:'numeric'});const counts={};requests.forEach(r=>{if(moduleName!=='all'&&r.department!==moduleName)return;const d=r.requestedAt?.toDate?r.requestedAt.toDate():new Date(r.requestedAt||0);if(!isNaN(d)){const k=dayKey(d);counts[k]=(counts[k]||0)+1}});const y=calendarMonth.getFullYear(),m=calendarMonth.getMonth(),first=new Date(y,m,1),start=first.getDay(),days=new Date(y,m+1,0).getDate(),prevDays=new Date(y,m,0).getDate();let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="calendar-dow">${x}</div>`).join('');for(let i=0;i<42;i++){const num=i-start+1;let d,cls='calendar-day';if(num<1){d=new Date(y,m-1,prevDays+num);cls+=' muted'}else if(num>days){d=new Date(y,m+1,num-days);cls+=' muted'}else d=new Date(y,m,num);const k=dayKey(d);if(dateMode==='day'&&sameDay(d,selectedDate))cls+=' selected';h+=`<button class="${cls}" onclick="selectCalendarDate('${k}')">${d.getDate()}${counts[k]?`<span class="count">${counts[k]}</span>`:''}</button>`}h+=`<button class="month-mode ${dateMode==='month'?'active':''}" onclick="selectWholeCalendarMonth()">Show whole ${calendarMonth.toLocaleDateString(undefined,{month:'long'})}</button>`;grid.innerHTML=h}
 function selectCalendarDate(k){selectedDate=new Date(k+'T00:00:00');dateMode='day';calendarMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);render()}
 function selectWholeCalendarMonth(){selectedDate=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1);dateMode='month';render()}
-function fillCategories(sel='',dept=moduleName){const list=dept==='all'?LAB: listFor(dept);$('fCategory').innerHTML=list.map(x=>`<option value="${x.key}" ${x.key===sel?'selected':''}>${x.label}</option>`).join('');$('fCategory').onchange=updateHelp;if($('fDepartment'))$('fDepartment').onchange=()=>fillCategories('', $('fDepartment').value);updateHelp()}
-function updateHelp(){const dept=moduleName==='all'?$('fDepartment').value:moduleName;const c=listFor(dept).find(x=>x.key===$('fCategory').value);$('categoryHelp').textContent=c?.help||'Specify the request.';$('ancillaryNoteLabel').textContent=moduleName==='laboratory'?'Laboratory Note':moduleName==='radiology'?'Radiology Note':'Nursing Note'}
-function clearForm(){['fName','fAge','fSpecific','fRequesterNote','fAncillaryNote'].forEach(id=>$(id).value='');$('fSex').value='';$('fAdmission').value=dayKey(new Date());if($('fDepartment'))$('fDepartment').value=moduleName==='all'?'laboratory':moduleName}
-function openNew(){editingId=null;const dept=moduleName==='all'?'laboratory':moduleName;$('modalTitle').textContent='New '+moduleLabel(dept)+' Request';clearForm();$('departmentField').style.display=moduleName==='all'?'flex':'none';fillCategories('',dept);updateWorkflow();$('deleteBtn').style.display='none';$('modal').classList.add('show')}
-function openRequest(id){const r=requests.find(x=>x.id===id);if(!r)return;editingId=id;$('modalTitle').textContent='Request Details';$('fName').value=r.patientName||'';$('fAge').value=r.age||'';$('fSex').value=r.sex||'';$('fAdmission').value=r.admissionDate||'';$('fSpecific').value=r.specificRequest||'';$('fRequesterNote').value=r.requesterNote||'';$('fAncillaryNote').value=r.ancillaryNote||'';$('departmentField').style.display='none';fillCategories(r.category,r.department);$('deleteBtn').style.display=isRequester()?'inline-block':'none';updateWorkflow();$('modal').classList.add('show')}
+function fillCategories(sel='',dept=moduleName){const list=listFor(dept==='all'?'laboratory':dept);$('sfCategory').innerHTML=list.map(x=>`<option value="${x.key}" ${x.key===sel?'selected':''}>${x.label}</option>`).join('');$('sfCategory').onchange=updateHelp;updateHelp()}
+function updateHelp(){const dept=editingId?(requests.find(x=>x.id===editingId)?.department||moduleName):(moduleName==='all'?($('fDepartment')?.value||'laboratory'):moduleName);const c=listFor(dept).find(x=>x.key===$('sfCategory').value);$('categoryHelp').textContent=c?.help||'Specify the request.';$('ancillaryNoteLabel').textContent=moduleLabel(dept)+' Note'}
+function clearForm(){['fName','fAge','fRequesterNote'].forEach(id=>$(id).value='');$('fSex').value='';$('fAdmission').value=dayKey(new Date())}
+function requestChoiceHTML(dept,items){return `<div class="multi-section"><div class="multi-section-title">${iconForDept(dept)} ${moduleLabel(dept)}</div>${items.map(x=>`<div class="request-choice"><input type="checkbox" id="rq_${dept}_${x.key}" value="${x.key}" data-dept="${dept}" onchange="toggleRequestDetail(this)"><div><label for="rq_${dept}_${x.key}">${esc(x.label)}</label><small>${esc(x.help||'Specify the request details below.')}</small></div><div class="choice-detail" id="detail_${dept}_${x.key}"><input data-specific-for="${dept}_${x.key}" placeholder="Specific examination / request"></div></div>`).join('')}</div>`}
+function buildRequestChoices(){const box=$('requestChoices');if(!box)return;const depts=moduleName==='all'?['laboratory','radiology','nursing']:[moduleName];box.innerHTML=depts.map(d=>requestChoiceHTML(d,listFor(d))).join('')}
+function toggleRequestDetail(cb){const d=$('detail_'+cb.dataset.dept+'_'+cb.value);if(d)d.classList.toggle('show',cb.checked)}
+function openNew(){editingId=null;$('modalTitle').textContent='New Patient Request';$('requestModal').classList.add('multi');$('multiRequestMode').style.display='block';$('singleRequestMode').style.display='none';$('deleteBtn').style.display='none';clearForm();buildRequestChoices();$('workflowActions').innerHTML='<button class="primary" onclick="submitNew()">Submit Selected Requests</button>';$('modal').classList.add('show')}
+function openRequest(id){const r=requests.find(x=>x.id===id);if(!r)return;editingId=id;$('modalTitle').textContent='Request Details';$('requestModal').classList.remove('multi');$('multiRequestMode').style.display='none';$('singleRequestMode').style.display='block';$('sfName').value=r.patientName||'';$('sfAge').value=r.age||'';$('sfSex').value=r.sex||'';$('sfAdmission').value=r.admissionDate||'';$('sfSpecific').value=r.specificRequest||'';$('sfRequesterNote').value=r.requesterNote||'';$('sfAncillaryNote').value=r.ancillaryNote||'';fillCategories(r.category,r.department);$('deleteBtn').style.display=isRequester()?'inline-block':'none';updateWorkflow();$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show');editingId=null}
-function dataFromForm(){const existing=editingId?requests.find(x=>x.id===editingId):null;const dept=existing?.department||(moduleName==='all'?$('fDepartment').value:moduleName);return{patientName:$('fName').value.trim(),age:$('fAge').value.trim(),sex:$('fSex').value,admissionDate:$('fAdmission').value,category:$('fCategory').value,specificRequest:$('fSpecific').value.trim(),requesterNote:$('fRequesterNote').value.trim(),ancillaryNote:$('fAncillaryNote').value.trim(),department:dept}}
+function dataFromForm(){const existing=editingId?requests.find(x=>x.id===editingId):null;const dept=existing?.department||(moduleName==='all'?'laboratory':moduleName);return{patientName:$('sfName').value.trim(),age:$('sfAge').value.trim(),sex:$('sfSex').value,admissionDate:$('sfAdmission').value,category:$('sfCategory').value,specificRequest:$('sfSpecific').value.trim(),requesterNote:$('sfRequesterNote').value.trim(),ancillaryNote:$('sfAncillaryNote').value.trim(),department:dept}}
 function validate(d){return(!d.patientName||!d.age||!d.sex||!d.admissionDate||!d.category||!d.specificRequest)?'Complete patient details and the specific request.':''}
-function updateWorkflow(){const r=editingId?requests.find(x=>x.id===editingId):null;let b='';if(!r)b='<button class="primary" onclick="submitNew()">Submit Request</button>';else if(isRequester()&&['pending','acknowledged','sent'].includes(r.status))b='<button class="primary" onclick="saveEdit()">✏️ Save Changes</button>';if(r&&isRequester()&&r.status==='sent')b+='<button class="primary" onclick="setStatus(\'received\')">📥 Mark as Received</button>';if(r&&canProcess()&&r.department===moduleName&&!isRequester()){if(r.status==='pending')b+='<button class="primary" onclick="setStatus(\'acknowledged\')">🔄 Acknowledge / On Process</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';else if(r.status==='acknowledged')b+='<button class="primary" onclick="setStatus(\'sent\')">📤 Mark Sent / Processed</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';b+='<button class="secondary" onclick="saveAncillaryNote()">Save Note</button>'}$('workflowActions').innerHTML=b}
-async function submitNew(){const d=dataFromForm(),e=validate(d);if(e)return alert(e);try{await db.collection('ancillaryRequests').add({...d,status:'pending',requestedAt:firebase.firestore.FieldValue.serverTimestamp(),requestedBy:currentUser.uid,requestedByName:profile.fullName||profile.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to submit request: '+x.message)}}
+function selectedNewRequests(){const out=[];document.querySelectorAll('#requestChoices input[type=checkbox]:checked').forEach(cb=>{const key=cb.value,dept=cb.dataset.dept,detail=document.querySelector(`[data-specific-for="${dept}_${key}"]`);const item=listFor(dept).find(x=>x.key===key);out.push({department:dept,category:key,specificRequest:(detail?.value||'').trim(),label:item?.label||key})});return out}
+function updateWorkflow(){const r=editingId?requests.find(x=>x.id===editingId):null;let b='';if(!r)b='<button class="primary" onclick="submitNew()">Submit Selected Requests</button>';else if(isRequester()&&['pending','acknowledged','sent'].includes(r.status))b='<button class="primary" onclick="saveEdit()">✏️ Save Changes</button>';if(r&&isRequester()&&r.status==='sent')b+='<button class="primary" onclick="setStatus(\'received\')">📥 Mark as Received</button>';if(r&&canProcess()&&(moduleName==='all'||r.department===moduleName)&&!isRequester()){if(r.status==='pending')b+='<button class="primary" onclick="setStatus(\'acknowledged\')">🔄 Acknowledge / On Process</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';else if(r.status==='acknowledged')b+='<button class="primary" onclick="setStatus(\'sent\')">📤 Mark Sent / Processed</button><button class="danger" onclick="setStatus(\'denied\')">❌ Deny</button>';b+='<button class="secondary" onclick="saveAncillaryNote()">Save Note</button>'}$('workflowActions').innerHTML=b}
+async function submitNew(){const patient={patientName:$('fName').value.trim(),age:$('fAge').value.trim(),sex:$('fSex').value,admissionDate:$('fAdmission').value,requesterNote:$('fRequesterNote').value.trim()};if(!patient.patientName||!patient.age||!patient.sex||!patient.admissionDate)return alert('Complete the patient details.');const selected=selectedNewRequests();if(!selected.length)return alert('Select at least one request.');const missing=selected.find(x=>!x.specificRequest);if(missing)return alert('Please enter the specific request for '+missing.label+'.');try{const batch=db.batch();selected.forEach(x=>{const ref=db.collection('ancillaryRequests').doc();batch.set(ref,{...patient,department:x.department,category:x.category,specificRequest:x.specificRequest,ancillaryNote:'',status:'pending',requestedAt:firebase.firestore.FieldValue.serverTimestamp(),requestedBy:currentUser.uid,requestedByName:profile.fullName||profile.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});await batch.commit();closeModal()}catch(x){alert('Unable to submit requests: '+x.message)}}
 async function saveEdit(){const d=dataFromForm(),e=validate(d);if(e)return alert(e);try{await db.collection('ancillaryRequests').doc(editingId).update({...d,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save changes: '+x.message)}}
-async function saveAncillaryNote(){try{await db.collection('ancillaryRequests').doc(editingId).update({ancillaryNote:$('fAncillaryNote').value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save note: '+x.message)}}
+async function saveAncillaryNote(){try{await db.collection('ancillaryRequests').doc(editingId).update({ancillaryNote:$('sfAncillaryNote').value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});closeModal()}catch(x){alert('Unable to save note: '+x.message)}}
 async function setStatus(next){const patch={status:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};if(next==='acknowledged')patch.acknowledgedAt=firebase.firestore.FieldValue.serverTimestamp();if(next==='sent')patch.sentAt=firebase.firestore.FieldValue.serverTimestamp();if(next==='received')patch.receivedAt=firebase.firestore.FieldValue.serverTimestamp();if(next==='denied')patch.deniedAt=firebase.firestore.FieldValue.serverTimestamp();try{await db.collection('ancillaryRequests').doc(editingId).update(patch);closeModal()}catch(e){alert('Unable to update status: '+e.message)}}
 async function deleteCurrent(){if(!editingId)return;const r=requests.find(x=>x.id===editingId);if(!r||!confirm('Delete the request for '+r.patientName+'? This cannot be undone.'))return;try{await db.collection('ancillaryRequests').doc(editingId).delete();closeModal()}catch(e){alert('Unable to delete request: '+e.message)}}
 $('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
